@@ -27,3 +27,9 @@ body.hemingway-focus-typewriter .markdown-source-view .cm-content {
   opacity: 0.35;
   transition: opacity 200ms ease;
 }
+
+/* Settings: back-to-community-plugins button */
+.hemingway-back-button {
+  margin-bottom: 1rem;
+  cursor: pointer;
+}

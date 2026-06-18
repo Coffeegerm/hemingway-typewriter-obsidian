@@ -39,9 +39,9 @@ The plugin adds a command, `Hemingway Typewriter: Toggle active`, which you can:
 | --- | --- |
 | Hemingway mode enabled | Turns write-only mode on or off. |
 | Show activation state in status bar | Shows an indicator while the mode is active. |
-| Text to show in status bar | Customizes the indicator label. |
 | Show notice when toggling status | Shows a brief notice when you toggle the mode. |
 | Allow using Backspace key even if active | Permits deleting with Backspace while active. |
+| Lock mouse cursor | Blocks the mouse from moving the cursor while active. |
 | Enable focus mode | Enters the distraction-free environment with Hemingway mode. |
 | Hide interface chrome | Collapses sidebars and hides ribbon, tabs, and status bar. |
 | Center text column | Narrows and centers the editor. |
@@ -52,8 +52,8 @@ The plugin adds a command, `Hemingway Typewriter: Toggle active`, which you can:
 
 You can use one of the following methods:
 
-- **BRAT** — install the [BRAT plugin](https://github.com/TfTHacker/obsidian42-brat), then add the repository `Coffeegerm/hemingway-mode-obsidian`. BRAT keeps it updated automatically.
-- **Manual** — download `main.js`, `manifest.json`, and `styles.css` from the [latest release](https://github.com/Coffeegerm/hemingway-mode-obsidian/releases) and copy them into `.obsidian/plugins/hemingway-typewriter/` in your vault, then enable the plugin under Settings -> Community plugins.
+- **BRAT** — install the [BRAT plugin](https://github.com/TfTHacker/obsidian42-brat), then add the repository `Coffeegerm/hemingway-typewriter-obsidian`. BRAT keeps it updated automatically.
+- **Manual** — download `main.js`, `manifest.json`, and `styles.css` from the [latest release](https://github.com/Coffeegerm/hemingway-typewriter-obsidian/releases) and copy them into `.obsidian/plugins/hemingway-typewriter/` in your vault, then enable the plugin under Settings -> Community plugins.
 - **Community plugin registry** — listing is pending review.
 
 > Tip: If you also use a separate typewriter-scrolling plugin, disable one of the two typewriter features to avoid double scrolling.

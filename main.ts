@@ -5,9 +5,9 @@ import { StateField, StateEffect, EditorState, RangeSetBuilder } from "@codemirr
 interface HemingwayModePluginSettings {
   enabled: boolean;
   allowBackspace: boolean;
+  lockMouse: boolean;
   showToggleNotice: boolean;
   showStatusBar: boolean;
-  statusBarText: string;
   focusMode: boolean;
   focusHideChrome: boolean;
   focusCenterColumn: boolean;
@@ -18,9 +18,9 @@ interface HemingwayModePluginSettings {
 const DEFAULT_SETTINGS: HemingwayModePluginSettings = {
   enabled: false,
   allowBackspace: false,
+  lockMouse: true,
   showToggleNotice: true,
   showStatusBar: true,
-  statusBarText: "Hemingway",
   focusMode: true,
   focusHideChrome: true,
   focusCenterColumn: true,
@@ -85,6 +85,7 @@ export default class HemingwayModePlugin extends Plugin {
       },
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-this-alias -- inline CodeMirror plugin classes need a reference to the plugin instance
     const plugin = this;
 
     this.registerEditorExtension([
@@ -113,7 +114,8 @@ export default class HemingwayModePlugin extends Plugin {
       // clicks no longer move the caret.
       EditorView.domEventHandlers({
         mousedown: (event, view) => {
-          if ((view.state.field(hemingwayModeState, false) ?? false) && view.hasFocus) {
+          const active = view.state.field(hemingwayModeState, false) ?? false;
+          if (active && plugin.settings.lockMouse && view.hasFocus) {
             event.preventDefault();
             return true;
           }
@@ -246,7 +248,7 @@ export default class HemingwayModePlugin extends Plugin {
   updateStatus(quiet = false) {
     if (this.settings.enabled) {
       if (this.settings.showStatusBar) {
-        this.statusBar.setText(this.settings.statusBarText);
+        this.statusBar.setText("Hemingway");
         this.statusBar.show();
       } else {
         this.statusBar.hide();
@@ -337,6 +339,15 @@ class HemingwayModeSettingTab extends PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
 
+    const backButton = containerEl.createEl("button", {
+      text: "\u2190",
+      cls: "hemingway-back-button",
+    });
+    backButton.addEventListener("click", () => {
+      const setting = (this.app as unknown as { setting?: { openTabById?: (id: string) => void } }).setting;
+      setting?.openTabById?.("community-plugins");
+    });
+
     new Setting(containerEl)
       .setName("Hemingway mode enabled")
       .setDesc("Prevents any editing, so you can only write ahead.")
@@ -356,22 +367,8 @@ class HemingwayModeSettingTab extends PluginSettingTab {
           this.plugin.settings.showStatusBar = value;
           await this.plugin.saveSettings();
           this.plugin.updateStatus(true);
-          this.display();
         })
       );
-
-    if (this.plugin.settings.showStatusBar) {
-      new Setting(containerEl)
-        .setName("Text to show in status bar")
-        .setDesc("Appears in status bar when the write-only mode is active.")
-        .addText((text) =>
-          text.setValue(this.plugin.settings.statusBarText).onChange(async (value) => {
-            this.plugin.settings.statusBarText = value;
-            await this.plugin.saveSettings();
-            this.plugin.updateStatus(true);
-          })
-        );
-    }
 
     new Setting(containerEl)
       .setName("Show notice when toggling status")
@@ -390,6 +387,17 @@ class HemingwayModeSettingTab extends PluginSettingTab {
       .addToggle((toggle) =>
         toggle.setValue(this.plugin.settings.allowBackspace).onChange(async (value) => {
           this.plugin.settings.allowBackspace = value;
+          await this.plugin.saveSettings();
+          this.plugin.updateStatus(true);
+        })
+      );
+
+    new Setting(containerEl)
+      .setName("Lock mouse cursor")
+      .setDesc("Prevents the mouse from moving the cursor while active, so you can only write forward.")
+      .addToggle((toggle) =>
+        toggle.setValue(this.plugin.settings.lockMouse).onChange(async (value) => {
+          this.plugin.settings.lockMouse = value;
           await this.plugin.saveSettings();
           this.plugin.updateStatus(true);
         })
