@@ -1,6 +1,6 @@
 import { App, MarkdownView, Notice, Plugin, PluginSettingTab, Setting } from "obsidian";
 import { EditorView, ViewPlugin, ViewUpdate, Decoration, DecorationSet } from "@codemirror/view";
-import { StateField, StateEffect, EditorState, RangeSetBuilder } from "@codemirror/state";
+import { StateField, StateEffect, RangeSetBuilder } from "@codemirror/state";
 
 interface HemingwayModePluginSettings {
   enabled: boolean;
@@ -92,29 +92,60 @@ export default class HemingwayModePlugin extends Plugin {
       hemingwayModeState.init(() => this.settings.enabled),
       focusModeState.init(() => this.settings.enabled && this.settings.focusMode),
 
-      // With typewriter scrolling on, keep the line being written vertically
-      // centered. Done in a transaction filter so we never dispatch while an
-      // editor update is already in progress. We only re-center when the caret
-      // moves to a different line: re-centering on every keystroke fights
-      // CodeMirror's own cursor scrolling and makes the text jitter. The caret
-      // is intentionally NOT forced anywhere; backward movement is blocked by
-      // the keydown handler, so writing stays on the current line.
-      EditorState.transactionFilter.of((tr) => {
-        const hemingway = tr.startState.field(hemingwayModeState, false) ?? false;
-        const focus = tr.startState.field(focusModeState, false) ?? false;
-        if (!hemingway || !focus || !this.settings.focusTypewriter) {
-          return tr;
+      // Typewriter scrolling: keep the caret's current VISUAL row vertically
+      // centered while writing — including inside soft-wrapped paragraphs.
+      // On every caret-affecting change we measure the caret's actual on-screen
+      // position (coordsAtPos = the current visual row, even mid-paragraph) and
+      // nudge scrollTop so the caret sits at the viewport center. This is
+      // self-correcting: it re-centers after a manual scroll, and it no-ops when
+      // the caret is already centered (so steady typing on one row stays put and
+      // never jitters). Measuring/scrolling happens in requestMeasure so we never
+      // touch the DOM during an in-progress update.
+      ViewPlugin.fromClass(
+        class {
+          private scheduled = false;
+
+          constructor(view: EditorView) {
+            this.center(view);
+          }
+
+          private enabled(view: EditorView): boolean {
+            const hemingway = view.state.field(hemingwayModeState, false) ?? false;
+            return hemingway && plugin.settings.focusTypewriter;
+          }
+
+          update(update: ViewUpdate) {
+            if (!this.enabled(update.view)) return;
+            // Ignore pure scrolls (incl. our own scrollTop write) to avoid loops;
+            // only react when the caret moved or the doc changed.
+            if (!update.docChanged && !update.selectionSet) return;
+            this.center(update.view);
+          }
+
+          private center(view: EditorView) {
+            if (this.scheduled) return;
+            this.scheduled = true;
+            view.requestMeasure({
+              read: () => {
+                const head = view.state.selection.main.head;
+                const coords = view.coordsAtPos(head);
+                if (!coords) return null;
+                const scroller = view.scrollDOM;
+                const caretCenter =
+                  (coords.top + coords.bottom) / 2 - scroller.getBoundingClientRect().top;
+                return caretCenter - scroller.clientHeight / 2; // delta to centered
+              },
+              write: (delta) => {
+                this.scheduled = false;
+                if (delta === null || !this.enabled(view)) return;
+                if (Math.abs(delta) > 1) {
+                  view.scrollDOM.scrollTop += delta; // browser clamps to valid range
+                }
+              },
+            });
+          }
         }
-        if (!tr.docChanged && !tr.selection) {
-          return tr;
-        }
-        const fromLine = tr.startState.doc.lineAt(tr.startState.selection.main.head).number;
-        const toLine = tr.newDoc.lineAt(tr.newSelection.main.head).number;
-        if (fromLine === toLine) {
-          return tr;
-        }
-        return [tr, { effects: EditorView.scrollIntoView(tr.newSelection.main.head, { y: "center" }) }];
-      }),
+      ),
 
       // Stop the mouse from repositioning the caret while writing forward.
       // The first click can still focus an unfocused editor; once focused,
@@ -266,6 +297,9 @@ export default class HemingwayModePlugin extends Plugin {
       } else {
         this.exitFocusMode();
       }
+      // Typewriter padding is independent of Focus mode; applied after the
+      // focus block so it survives the exitFocusMode() call above.
+      document.body.toggleClass("hemingway-focus-typewriter", this.settings.focusTypewriter);
     } else {
       this.statusBar.hide();
       this.updateEditor(false);
@@ -295,7 +329,6 @@ export default class HemingwayModePlugin extends Plugin {
     document.body.addClass("hemingway-focus");
     document.body.toggleClass("hemingway-focus-chrome", s.focusHideChrome);
     document.body.toggleClass("hemingway-focus-center", s.focusCenterColumn);
-    document.body.toggleClass("hemingway-focus-typewriter", s.focusTypewriter);
 
     if (s.focusHideChrome) {
       // Remember the sidebars' prior state once, so we can restore it exactly

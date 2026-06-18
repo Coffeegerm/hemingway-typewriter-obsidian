@@ -17,9 +17,10 @@ body.hemingway-focus-center .markdown-preview-view .markdown-preview-sizer {
   margin-inline: auto;
 }
 
-/* Focus mode: room above/below so the first and last lines can center */
+/* Focus mode: room above/below so the first and last lines can center.
+   50vh (half the viewport) lets even the very last line reach the center. */
 body.hemingway-focus-typewriter .markdown-source-view .cm-content {
-  padding-block: 45vh;
+  padding-block: 50vh;
 }
 
 /* Focus mode: fade everything except the active paragraph */
