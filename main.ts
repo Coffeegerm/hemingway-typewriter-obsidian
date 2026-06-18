@@ -94,9 +94,11 @@ export default class HemingwayModePlugin extends Plugin {
 
       // With typewriter scrolling on, keep the line being written vertically
       // centered. Done in a transaction filter so we never dispatch while an
-      // editor update is already in progress. The caret is intentionally NOT
-      // forced anywhere: backward movement is blocked by the keydown handler,
-      // so writing stays on the current line instead of jumping to the end.
+      // editor update is already in progress. We only re-center when the caret
+      // moves to a different line: re-centering on every keystroke fights
+      // CodeMirror's own cursor scrolling and makes the text jitter. The caret
+      // is intentionally NOT forced anywhere; backward movement is blocked by
+      // the keydown handler, so writing stays on the current line.
       EditorState.transactionFilter.of((tr) => {
         const hemingway = tr.startState.field(hemingwayModeState, false) ?? false;
         const focus = tr.startState.field(focusModeState, false) ?? false;
@@ -104,6 +106,11 @@ export default class HemingwayModePlugin extends Plugin {
           return tr;
         }
         if (!tr.docChanged && !tr.selection) {
+          return tr;
+        }
+        const fromLine = tr.startState.doc.lineAt(tr.startState.selection.main.head).number;
+        const toLine = tr.newDoc.lineAt(tr.newSelection.main.head).number;
+        if (fromLine === toLine) {
           return tr;
         }
         return [tr, { effects: EditorView.scrollIntoView(tr.newSelection.main.head, { y: "center" }) }];
