@@ -1,6 +1,6 @@
 import { App, MarkdownView, Notice, Plugin, PluginSettingTab, Setting } from "obsidian";
 import { EditorView, ViewPlugin, ViewUpdate, Decoration, DecorationSet } from "@codemirror/view";
-import { StateField, StateEffect, RangeSetBuilder } from "@codemirror/state";
+import { StateField, StateEffect, RangeSetBuilder, Prec } from "@codemirror/state";
 
 interface HemingwayModePluginSettings {
   enabled: boolean;
@@ -8,6 +8,7 @@ interface HemingwayModePluginSettings {
   lockMouse: boolean;
   showToggleNotice: boolean;
   showStatusBar: boolean;
+  showRibbonIcon: boolean;
   focusMode: boolean;
   focusHideChrome: boolean;
   focusCenterColumn: boolean;
@@ -21,6 +22,7 @@ const DEFAULT_SETTINGS: HemingwayModePluginSettings = {
   lockMouse: true,
   showToggleNotice: true,
   showStatusBar: true,
+  showRibbonIcon: false,
   focusMode: true,
   focusHideChrome: true,
   focusCenterColumn: true,
@@ -63,6 +65,7 @@ const dimLineDecoration = Decoration.line({ class: "cm-hemingway-dim" });
 export default class HemingwayModePlugin extends Plugin {
   settings: HemingwayModePluginSettings;
   statusBar: HTMLElement;
+  ribbonIcon?: HTMLElement;
   prevLeftCollapsed: boolean | undefined;
   prevRightCollapsed: boolean | undefined;
 
@@ -71,19 +74,27 @@ export default class HemingwayModePlugin extends Plugin {
 
     this.addSettingTab(new HemingwayModeSettingTab(this.app, this));
 
+    this.updateRibbonIcon();
+
     this.statusBar = this.addStatusBarItem();
     this.statusBar.addClass("hemingway-mode-status");
+    this.statusBar.setText("Hemingway");
+    this.statusBar.setAttribute("aria-label", "Toggle Hemingway mode");
+    this.registerDomEvent(this.statusBar, "click", () => this.toggleActive());
     this.statusBar.hide();
 
     this.addCommand({
       id: "toggle-active",
       name: "Toggle active",
-      callback: () => {
-        this.settings.enabled = !this.settings.enabled;
-        this.saveSettings();
-        this.updateStatus();
-      },
+      callback: () => this.toggleActive(),
     });
+
+    // While active, switching notes should drop the caret at the end so you can
+    // keep writing forward — otherwise you land at the top with no way to move
+    // down (editing keys are blocked).
+    this.registerEvent(
+      this.app.workspace.on("active-leaf-change", () => this.moveCursorToDocEnd())
+    );
 
     // eslint-disable-next-line @typescript-eslint/no-this-alias -- inline CodeMirror plugin classes need a reference to the plugin instance
     const plugin = this;
@@ -160,6 +171,36 @@ export default class HemingwayModePlugin extends Plugin {
           return false;
         },
       }),
+
+      // Block the editing keys that would let you move back through the note
+      // (arrows, Home/End, Page Up/Down, Delete, undo — and Backspace unless
+      // allowed). Scoped to the editor via the highest precedence so it beats
+      // CodeMirror's own keymaps (e.g. undo) but leaves the rest of Obsidian's
+      // UI — file explorer, search, command palette — fully navigable.
+      Prec.highest(
+        EditorView.domEventHandlers({
+          keydown: (event, view) => {
+            const active = view.state.field(hemingwayModeState, false) ?? false;
+            if (!active) {
+              return false;
+            }
+            const forbiddenKeys = [
+              "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown",
+              "Home", "End", "PageUp", "PageDown",
+              "Delete",
+            ];
+            if (forbiddenKeys.includes(event.key) || (event.key === "z" && (event.ctrlKey || event.metaKey))) {
+              event.preventDefault();
+              return true;
+            }
+            if (event.key === "Backspace" && !plugin.settings.allowBackspace) {
+              event.preventDefault();
+              return true;
+            }
+            return false;
+          },
+        })
+      ),
 
       ViewPlugin.fromClass(
         class {
@@ -243,29 +284,6 @@ export default class HemingwayModePlugin extends Plugin {
       ),
     ]);
 
-    this.registerDomEvent(document, "keydown", (evt: KeyboardEvent) => {
-        const isEnabled = this.settings.enabled;
-
-        if (isEnabled) {
-            const forbiddenKeys = [
-                "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown",
-                "Home", "End", "PageUp", "PageDown",
-                "Delete",
-            ];
-
-            if (forbiddenKeys.includes(evt.key) || (evt.key === 'z' && (evt.ctrlKey || evt.metaKey))) {
-                evt.preventDefault();
-                evt.stopPropagation();
-            }
-
-            if (evt.key === "Backspace" && !this.settings.allowBackspace) {
-                evt.preventDefault();
-                evt.stopPropagation();
-            }
-        }
-    }, { capture: true });
-
-
     this.updateStatus();
   }
 
@@ -283,10 +301,38 @@ export default class HemingwayModePlugin extends Plugin {
     await this.saveData(this.settings);
   }
 
+  toggleActive() {
+    this.settings.enabled = !this.settings.enabled;
+    this.saveSettings();
+    this.updateStatus();
+  }
+
+  updateRibbonIcon() {
+    if (this.settings.showRibbonIcon && !this.ribbonIcon) {
+      this.ribbonIcon = this.addRibbonIcon("feather", "Toggle Hemingway mode", () => this.toggleActive());
+      this.ribbonIcon.toggleClass("is-active", this.settings.enabled);
+    } else if (!this.settings.showRibbonIcon && this.ribbonIcon) {
+      this.ribbonIcon.remove();
+      this.ribbonIcon = undefined;
+    }
+  }
+
+  moveCursorToDocEnd() {
+    if (!this.settings.enabled) return;
+    const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+    if (!view || !view.editor) return;
+    const editor = view.editor;
+    const lastLine = editor.lastLine();
+    const pos = { line: lastLine, ch: editor.getLine(lastLine).length };
+    editor.setCursor(pos);
+    editor.scrollIntoView({ from: pos, to: pos }, true);
+  }
+
   updateStatus(quiet = false) {
+    this.ribbonIcon?.toggleClass("is-active", this.settings.enabled);
+
     if (this.settings.enabled) {
       if (this.settings.showStatusBar) {
-        this.statusBar.setText("Hemingway");
         this.statusBar.show();
       } else {
         this.statusBar.hide();
@@ -380,8 +426,9 @@ class HemingwayModeSettingTab extends PluginSettingTab {
     containerEl.empty();
 
     const backButton = containerEl.createEl("button", {
-      text: "\u2190",
+      text: "←",
       cls: "hemingway-back-button",
+      attr: { "aria-label": "Back to community plugins" },
     });
     backButton.addEventListener("click", () => {
       const setting = (this.app as unknown as { setting?: { openTabById?: (id: string) => void } }).setting;
@@ -422,6 +469,17 @@ class HemingwayModeSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
+      .setName("Show ribbon icon")
+      .setDesc("Adds a button in the left sidebar to toggle Hemingway mode.")
+      .addToggle((toggle) =>
+        toggle.setValue(this.plugin.settings.showRibbonIcon).onChange(async (value) => {
+          this.plugin.settings.showRibbonIcon = value;
+          await this.plugin.saveSettings();
+          this.plugin.updateRibbonIcon();
+        })
+      );
+
+    new Setting(containerEl)
       .setName("Allow using Backspace key even if active")
       .setDesc("Allows deleting text with Backspace. This is useful for lousy typists.")
       .addToggle((toggle) =>
@@ -438,6 +496,17 @@ class HemingwayModeSettingTab extends PluginSettingTab {
       .addToggle((toggle) =>
         toggle.setValue(this.plugin.settings.lockMouse).onChange(async (value) => {
           this.plugin.settings.lockMouse = value;
+          await this.plugin.saveSettings();
+          this.plugin.updateStatus(true);
+        })
+      );
+
+    new Setting(containerEl)
+      .setName("Typewriter scrolling")
+      .setDesc("Keeps the line you are writing vertically centered on screen.")
+      .addToggle((toggle) =>
+        toggle.setValue(this.plugin.settings.focusTypewriter).onChange(async (value) => {
+          this.plugin.settings.focusTypewriter = value;
           await this.plugin.saveSettings();
           this.plugin.updateStatus(true);
         })
@@ -475,17 +544,6 @@ class HemingwayModeSettingTab extends PluginSettingTab {
         .addToggle((toggle) =>
           toggle.setValue(this.plugin.settings.focusCenterColumn).onChange(async (value) => {
             this.plugin.settings.focusCenterColumn = value;
-            await this.plugin.saveSettings();
-            this.plugin.updateStatus(true);
-          })
-        );
-
-      new Setting(containerEl)
-        .setName("Typewriter scrolling")
-        .setDesc("Keeps the line you are writing vertically centered.")
-        .addToggle((toggle) =>
-          toggle.setValue(this.plugin.settings.focusTypewriter).onChange(async (value) => {
-            this.plugin.settings.focusTypewriter = value;
             await this.plugin.saveSettings();
             this.plugin.updateStatus(true);
           })

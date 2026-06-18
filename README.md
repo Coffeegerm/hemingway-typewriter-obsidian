@@ -11,27 +11,32 @@ When active, Hemingway Typewriter disables the keys involved in editing (cursor 
 
 ### Write-only mode
 
-- Blocks cursor movement (arrows, Home/End, Page Up/Down), Delete, and Undo, so you can't go back to edit.
+- Blocks cursor movement (arrows, Home/End, Page Up/Down), Delete, and Undo *within the editor*, so you can't go back to edit. The rest of Obsidian — file explorer, search, command palette — stays fully navigable.
 - Keeps you writing forward from your current line instead of letting you move back through the note.
+- Switching notes while active drops the caret at the **end** of the note, so you can keep writing forward instead of landing at the top with no way down.
 - Optionally still allows Backspace, for fixing the occasional typo or rewriting the current word.
-- Shows an optional status bar indicator with configurable text.
+- Shows an optional status bar indicator (click it to toggle the mode).
+
+### Typewriter scrolling
+
+Keeps the line you are writing vertically centered on screen — including inside soft-wrapped paragraphs — so your eyes stay in one place as you write. Works on its own, with or without focus mode.
 
 ### Focus mode
 
-Turned on automatically with Hemingway mode (and individually configurable). Each of these can be toggled on or off:
+A distraction-free environment, turned on automatically with Hemingway mode (and individually configurable). Each of these can be toggled on or off:
 
 - **Hide interface chrome** — collapses both sidebars and hides the ribbon, tab headers, and status bar for a clean screen. Your previous sidebar layout is restored when you turn the mode off.
 - **Center text column** — narrows and centers the editor to a comfortable writing width.
-- **Typewriter scrolling** — keeps the line you are writing vertically centered on screen.
 - **Dim inactive paragraphs** — fades everything except the paragraph you are currently writing.
 
 ## Usage
 
-The plugin adds a command, `Hemingway Typewriter: Toggle active`, which you can:
+Toggle Hemingway mode any of these ways:
 
-- Run from the command palette.
-- Bind to a hotkey (Settings -> Hotkeys).
-- Attach to a button or ribbon icon with a plugin like [Commander](https://github.com/phibr0/obsidian-commander).
+- Run the command `Hemingway Typewriter: Toggle active` from the command palette.
+- Bind that command to a hotkey (Settings -> Hotkeys).
+- Click the **status bar** indicator (when shown).
+- Enable **Show ribbon icon** in settings to add a feather button to the left sidebar (off by default).
 
 ## Settings
 
@@ -40,12 +45,13 @@ The plugin adds a command, `Hemingway Typewriter: Toggle active`, which you can:
 | Hemingway mode enabled | Turns write-only mode on or off. |
 | Show activation state in status bar | Shows an indicator while the mode is active. |
 | Show notice when toggling status | Shows a brief notice when you toggle the mode. |
+| Show ribbon icon | Adds a left-sidebar button to toggle the mode (off by default). |
 | Allow using Backspace key even if active | Permits deleting with Backspace while active. |
 | Lock mouse cursor | Blocks the mouse from moving the cursor while active. |
+| Typewriter scrolling | Keeps the active line vertically centered (independent of focus mode). |
 | Enable focus mode | Enters the distraction-free environment with Hemingway mode. |
 | Hide interface chrome | Collapses sidebars and hides ribbon, tabs, and status bar. |
 | Center text column | Narrows and centers the editor. |
-| Typewriter scrolling | Keeps the active line vertically centered. |
 | Dim inactive paragraphs | Fades everything but the current paragraph. |
 
 ## Install

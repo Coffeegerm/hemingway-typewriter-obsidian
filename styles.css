@@ -29,6 +29,11 @@ body.hemingway-focus-typewriter .markdown-source-view .cm-content {
   transition: opacity 200ms ease;
 }
 
+/* Status bar toggle is clickable */
+.hemingway-mode-status {
+  cursor: pointer;
+}
+
 /* Settings: back-to-community-plugins button */
 .hemingway-back-button {
   margin-bottom: 1rem;
