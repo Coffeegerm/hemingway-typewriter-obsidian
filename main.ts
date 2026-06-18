@@ -413,6 +413,23 @@ export default class HemingwayModePlugin extends Plugin {
   }
 }
 
+// Obsidian's settings-modal API isn't in the public typings. Feature-detecting
+// it (rather than blindly casting) keeps the "back" button working where it
+// exists and silently no-ops where it doesn't — the same defensive pattern used
+// by established plugins such as Notebook Navigator.
+interface SettingApi {
+  open(): void;
+  openTabById(id: string): void;
+}
+
+function getSettingApi(app: App): SettingApi | null {
+  const setting = (app as { setting?: Partial<SettingApi> }).setting;
+  if (!setting || typeof setting.open !== "function" || typeof setting.openTabById !== "function") {
+    return null;
+  }
+  return setting as SettingApi;
+}
+
 class HemingwayModeSettingTab extends PluginSettingTab {
   plugin: HemingwayModePlugin;
 
@@ -431,8 +448,16 @@ class HemingwayModeSettingTab extends PluginSettingTab {
       attr: { "aria-label": "Back to community plugins" },
     });
     backButton.addEventListener("click", () => {
-      const setting = (this.app as unknown as { setting?: { openTabById?: (id: string) => void } }).setting;
-      setting?.openTabById?.("community-plugins");
+      const setting = getSettingApi(this.app);
+      if (!setting) {
+        return;
+      }
+      try {
+        setting.open();
+        setting.openTabById("community-plugins");
+      } catch (e) {
+        // The settings API shape changed; fail quietly rather than crash.
+      }
     });
 
     new Setting(containerEl)
