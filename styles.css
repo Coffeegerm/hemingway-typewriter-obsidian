@@ -1,3 +1,29 @@
 .view-content.hemingway .cm-editor .cm-content {
   pointer-events: none;
 }
+
+/* Focus mode: hide interface chrome for a distraction-free screen */
+body.hemingway-focus-chrome .workspace-ribbon,
+body.hemingway-focus-chrome .workspace-tab-header-container,
+body.hemingway-focus-chrome .status-bar,
+body.hemingway-focus-chrome .view-header {
+  display: none !important;
+}
+
+/* Focus mode: center and narrow the writing column */
+body.hemingway-focus-center .markdown-source-view .cm-sizer,
+body.hemingway-focus-center .markdown-preview-view .markdown-preview-sizer {
+  max-width: 40rem;
+  margin-inline: auto;
+}
+
+/* Focus mode: room above/below so the first and last lines can center */
+body.hemingway-focus-typewriter .markdown-source-view .cm-content {
+  padding-block: 45vh;
+}
+
+/* Focus mode: fade everything except the active paragraph */
+.cm-hemingway-dim {
+  opacity: 0.35;
+  transition: opacity 200ms ease;
+}
