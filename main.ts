@@ -62,7 +62,7 @@ const focusModeState = StateField.define<boolean>({
 
 const toggleFocusMode = StateEffect.define<boolean>();
 
-const dimLineDecoration = Decoration.line({ class: "cm-hemingway-dim" });
+const dimMarkDecoration = Decoration.mark({ class: "cm-hemingway-dim" });
 
 export default class HemingwayModePlugin extends Plugin {
   settings: HemingwayModePluginSettings;
@@ -238,10 +238,13 @@ export default class HemingwayModePlugin extends Plugin {
           }
 
           update(update: ViewUpdate) {
+            // NOT keyed on viewportChanged: the dim set already covers the whole
+            // document, so scrolling never needs a rebuild. The typewriter scroll
+            // fires viewportChanged on every keystroke; rebuilding there made the
+            // dimmed lines flash back to full opacity while typing.
             if (
               update.docChanged ||
               update.selectionSet ||
-              update.viewportChanged ||
               update.transactions.some((tr) => tr.effects.some((e) => e.is(toggleFocusMode)))
             ) {
               this.decorations = this.buildDecorations(update.view);
@@ -254,29 +257,54 @@ export default class HemingwayModePlugin extends Plugin {
               return Decoration.none;
             }
 
-            const doc = view.state.doc;
+            // iA Writer-style focus: dim everything except the SENTENCE the
+            // caret is in. A sentence is far smaller than a paragraph, so what
+            // you're actively writing stays lit while everything around it —
+            // including earlier sentences in the same block — fades. The dim set
+            // is derived from the document + caret (not the viewport), so it
+            // stays stable while the typewriter scroll churns the viewport.
             const head = view.state.selection.main.head;
-            const currentLine = doc.lineAt(head);
-            const isBlank = (lineNumber: number) => doc.line(lineNumber).text.trim().length === 0;
+            const len = view.state.doc.length;
+            const text = view.state.sliceDoc();
 
-            let firstLine = currentLine.number;
-            let lastLine = currentLine.number;
-            if (!isBlank(currentLine.number)) {
-              while (firstLine > 1 && !isBlank(firstLine - 1)) firstLine--;
-              while (lastLine < doc.lines && !isBlank(lastLine + 1)) lastLine++;
+            const isTerm = (c: string) => c === "." || c === "!" || c === "?";
+            const isWs = (c: string) => c === " " || c === "\t" || c === "\n" || c === "\r";
+
+            // Sentence start: walk left to just after the previous terminator+
+            // whitespace, the previous hard line break, or the doc start. A
+            // terminator only counts when followed by whitespace, so "e.g." and
+            // "3.14" don't split mid-word.
+            let s = head;
+            while (s > 0) {
+              const c = text[s - 1];
+              if (c === "\n") break;
+              if (isTerm(c) && (s >= len || isWs(text[s]))) break;
+              s--;
+            }
+            while (s < head && (text[s] === " " || text[s] === "\t")) s++;
+
+            // Sentence end: walk right to the next terminator-run (followed by
+            // whitespace/end), the next hard line break, or the doc end.
+            let e = head;
+            while (e < len) {
+              const c = text[e];
+              if (c === "\n") break;
+              if (isTerm(c)) {
+                let k = e;
+                while (k < len && isTerm(text[k])) k++;
+                if (k >= len || isWs(text[k])) {
+                  e = k;
+                  break;
+                }
+                e = k;
+                continue;
+              }
+              e++;
             }
 
             const builder = new RangeSetBuilder<Decoration>();
-            for (const { from, to } of view.visibleRanges) {
-              let pos = from;
-              while (pos <= to) {
-                const line = doc.lineAt(pos);
-                if (line.number < firstLine || line.number > lastLine) {
-                  builder.add(line.from, line.from, dimLineDecoration);
-                }
-                pos = line.to + 1;
-              }
-            }
+            if (s > 0) builder.add(0, s, dimMarkDecoration);
+            if (e < len) builder.add(e, len, dimMarkDecoration);
             return builder.finish();
           }
         },
@@ -603,8 +631,8 @@ class HemingwayModeSettingTab extends PluginSettingTab {
         );
 
       new Setting(containerEl)
-        .setName("Dim inactive paragraphs")
-        .setDesc("Fades everything except the paragraph you are currently writing.")
+        .setName("Dim inactive text")
+        .setDesc("Fades everything except the sentence you're currently writing, like iA Writer's focus mode.")
         .addToggle((toggle) =>
           toggle.setValue(this.plugin.settings.focusDimParagraph).onChange(async (value) => {
             this.plugin.settings.focusDimParagraph = value;

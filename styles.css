@@ -26,10 +26,16 @@ body.hemingway-focus-typewriter .markdown-source-view .cm-content {
   padding-block: 50vh;
 }
 
-/* Focus mode: fade everything except the active paragraph */
+/* Focus mode: fade everything except the active sentence (iA Writer style) */
 .cm-hemingway-dim {
   opacity: 0.35;
   transition: opacity 200ms ease;
+}
+
+/* Mobile WebKit restarts the opacity transition during the per-keystroke scroll
+   churn; apply the dim instantly there so it stays faded. */
+body.is-mobile .cm-hemingway-dim {
+  transition: none;
 }
 
 /* Status bar toggle is clickable */
