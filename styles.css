@@ -1,4 +1,4 @@
-.view-content.hemingway .cm-editor .cm-content {
+body.hemingway-lock-editing .view-content.hemingway .cm-editor .cm-content {
   pointer-events: none;
 }
 
@@ -41,4 +41,10 @@ body.hemingway-focus-typewriter .markdown-source-view .cm-content {
 .hemingway-back-button {
   margin-bottom: 1rem;
   cursor: pointer;
+}
+
+/* Settings: gray out editing sub-settings while "Lock editing" is off */
+.setting-item.is-disabled {
+  opacity: 0.5;
+  pointer-events: none;
 }

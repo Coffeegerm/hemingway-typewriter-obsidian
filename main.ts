@@ -4,6 +4,7 @@ import { StateField, StateEffect, RangeSetBuilder, Prec } from "@codemirror/stat
 
 interface HemingwayModePluginSettings {
   enabled: boolean;
+  lockEditing: boolean;
   allowBackspace: boolean;
   lockMouse: boolean;
   showToggleNotice: boolean;
@@ -18,6 +19,7 @@ interface HemingwayModePluginSettings {
 
 const DEFAULT_SETTINGS: HemingwayModePluginSettings = {
   enabled: false,
+  lockEditing: true,
   allowBackspace: false,
   lockMouse: true,
   showToggleNotice: true,
@@ -164,7 +166,7 @@ export default class HemingwayModePlugin extends Plugin {
       EditorView.domEventHandlers({
         mousedown: (event, view) => {
           const active = view.state.field(hemingwayModeState, false) ?? false;
-          if (active && plugin.settings.lockMouse && view.hasFocus) {
+          if (active && plugin.settings.lockEditing && plugin.settings.lockMouse && view.hasFocus) {
             event.preventDefault();
             return true;
           }
@@ -181,7 +183,7 @@ export default class HemingwayModePlugin extends Plugin {
         EditorView.domEventHandlers({
           keydown: (event, view) => {
             const active = view.state.field(hemingwayModeState, false) ?? false;
-            if (!active) {
+            if (!active || !plugin.settings.lockEditing) {
               return false;
             }
             const forbiddenKeys = [
@@ -290,6 +292,7 @@ export default class HemingwayModePlugin extends Plugin {
   onunload() {
     this.updateEditor(false);
     this.exitFocusMode();
+    document.body.removeClass("hemingway-lock-editing");
     this.statusBar.remove();
   }
 
@@ -318,7 +321,7 @@ export default class HemingwayModePlugin extends Plugin {
   }
 
   moveCursorToDocEnd() {
-    if (!this.settings.enabled) return;
+    if (!this.settings.enabled || !this.settings.lockEditing) return;
     const view = this.app.workspace.getActiveViewOfType(MarkdownView);
     if (!view || !view.editor) return;
     const editor = view.editor;
@@ -346,10 +349,13 @@ export default class HemingwayModePlugin extends Plugin {
       // Typewriter padding is independent of Focus mode; applied after the
       // focus block so it survives the exitFocusMode() call above.
       document.body.toggleClass("hemingway-focus-typewriter", this.settings.focusTypewriter);
+      // Gates the content's pointer-events lock — off lets the mouse navigate.
+      document.body.toggleClass("hemingway-lock-editing", this.settings.lockEditing);
     } else {
       this.statusBar.hide();
       this.updateEditor(false);
       this.exitFocusMode();
+      document.body.removeClass("hemingway-lock-editing");
     }
 
     if (this.settings.showToggleNotice && !quiet) {
@@ -471,6 +477,50 @@ class HemingwayModeSettingTab extends PluginSettingTab {
         })
       );
 
+    const lockEditing = this.plugin.settings.lockEditing;
+
+    new Setting(containerEl).setName("Editing").setHeading();
+
+    new Setting(containerEl)
+      .setName("Lock editing (write-only)")
+      .setDesc(
+        "Blocks editing and navigation so you can only write forward. Turn off to keep the typewriter and focus view while still editing and navigating freely."
+      )
+      .addToggle((toggle) =>
+        toggle.setValue(lockEditing).onChange(async (value) => {
+          this.plugin.settings.lockEditing = value;
+          await this.plugin.saveSettings();
+          this.plugin.updateStatus(true);
+          this.display();
+        })
+      );
+
+    new Setting(containerEl)
+      .setName("Allow using Backspace key even if active")
+      .setDesc("Allows deleting text with Backspace. This is useful for lousy typists.")
+      .setDisabled(!lockEditing)
+      .addToggle((toggle) =>
+        toggle.setValue(this.plugin.settings.allowBackspace).onChange(async (value) => {
+          this.plugin.settings.allowBackspace = value;
+          await this.plugin.saveSettings();
+          this.plugin.updateStatus(true);
+        })
+      );
+
+    new Setting(containerEl)
+      .setName("Lock mouse cursor")
+      .setDesc("Prevents the mouse from moving the cursor while active, so you can only write forward.")
+      .setDisabled(!lockEditing)
+      .addToggle((toggle) =>
+        toggle.setValue(this.plugin.settings.lockMouse).onChange(async (value) => {
+          this.plugin.settings.lockMouse = value;
+          await this.plugin.saveSettings();
+          this.plugin.updateStatus(true);
+        })
+      );
+
+    new Setting(containerEl).setName("Interface").setHeading();
+
     new Setting(containerEl)
       .setName("Show activation state in status bar")
       .setDesc("Shows in the status bar when the write-only mode is active.")
@@ -504,27 +554,7 @@ class HemingwayModeSettingTab extends PluginSettingTab {
         })
       );
 
-    new Setting(containerEl)
-      .setName("Allow using Backspace key even if active")
-      .setDesc("Allows deleting text with Backspace. This is useful for lousy typists.")
-      .addToggle((toggle) =>
-        toggle.setValue(this.plugin.settings.allowBackspace).onChange(async (value) => {
-          this.plugin.settings.allowBackspace = value;
-          await this.plugin.saveSettings();
-          this.plugin.updateStatus(true);
-        })
-      );
-
-    new Setting(containerEl)
-      .setName("Lock mouse cursor")
-      .setDesc("Prevents the mouse from moving the cursor while active, so you can only write forward.")
-      .addToggle((toggle) =>
-        toggle.setValue(this.plugin.settings.lockMouse).onChange(async (value) => {
-          this.plugin.settings.lockMouse = value;
-          await this.plugin.saveSettings();
-          this.plugin.updateStatus(true);
-        })
-      );
+    new Setting(containerEl).setName("Focus mode").setHeading();
 
     new Setting(containerEl)
       .setName("Typewriter scrolling")
@@ -536,8 +566,6 @@ class HemingwayModeSettingTab extends PluginSettingTab {
           this.plugin.updateStatus(true);
         })
       );
-
-    new Setting(containerEl).setName("Focus mode").setHeading();
 
     new Setting(containerEl)
       .setName("Enable focus mode")
