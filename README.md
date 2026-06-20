@@ -5,17 +5,22 @@
 
 A focused writing plugin for [Obsidian](https://obsidian.md). It stops you from fighting yourself: you can only write forward, and the whole interface gets out of your way while you do it.
 
-When active, Hemingway Typewriter disables the keys involved in editing (cursor movement, delete, undo, etc.) so you can only write forward from where your cursor is — you can't go back to revise. Pair that with a distraction-free **focus mode** and you get a true typewriter feel inside Obsidian.
+When active, Hemingway Typewriter can disable the keys involved in editing (cursor movement, delete, undo, etc.) so you can only write forward from where your cursor is — you can't go back to revise. Pair that with a distraction-free **focus mode** and you get a true typewriter feel inside Obsidian. Prefer to keep the calm focus view but still edit freely? The write-only lock is a single switch you can turn off.
 
 ## Features
 
 ### Write-only mode
 
+Editing locks live behind one **Lock editing** switch (on by default). While it's on:
+
 - Blocks cursor movement (arrows, Home/End, Page Up/Down), Delete, and Undo *within the editor*, so you can't go back to edit. The rest of Obsidian — file explorer, search, command palette — stays fully navigable.
-- Keeps you writing forward from your current line instead of letting you move back through the note.
-- Switching notes while active drops the caret at the **end** of the note, so you can keep writing forward instead of landing at the top with no way down.
-- Optionally still allows Backspace, for fixing the occasional typo or rewriting the current word.
-- Shows an optional status bar indicator (click it to toggle the mode).
+- Optionally locks the **mouse** too, so clicks can't reposition the caret.
+- Switching notes drops the caret at the **end** of the note, so you keep writing forward instead of landing at the top with no way down.
+- Optionally still allows **Backspace**, for fixing the occasional typo.
+
+Turn **Lock editing** off and you keep the typewriter scrolling and focus view while editing and navigating freely — focus without the write-only constraint.
+
+A status bar indicator can be shown (click it to toggle the mode).
 
 ### Typewriter scrolling
 
@@ -25,9 +30,9 @@ Keeps the line you are writing vertically centered on screen — including insid
 
 A distraction-free environment, turned on automatically with Hemingway mode (and individually configurable). Each of these can be toggled on or off:
 
-- **Hide interface chrome** — collapses both sidebars and hides the ribbon, tab headers, and status bar for a clean screen. Your previous sidebar layout is restored when you turn the mode off.
+- **Hide interface chrome** — collapses both sidebars and hides the ribbon, tab headers, and status bar (plus the mobile toolbar and navbar) for a clean screen. Your previous sidebar layout is restored when you turn the mode off.
 - **Center text column** — narrows and centers the editor to a comfortable writing width.
-- **Dim inactive paragraphs** — fades everything except the paragraph you are currently writing.
+- **Dim inactive text** — fades everything except the sentence you're currently writing, like iA Writer's focus mode.
 
 ## Usage
 
@@ -40,19 +45,25 @@ Toggle Hemingway mode any of these ways:
 
 ## Settings
 
+Settings are grouped into three sections:
+
 | Setting | Description |
 | --- | --- |
-| Hemingway mode enabled | Turns write-only mode on or off. |
+| Hemingway mode enabled | Master switch — turns the writing mode on or off. |
+| **Editing** | |
+| Lock editing (write-only) | Blocks editing and navigation so you can only write forward. Turn off to keep the typewriter and focus view while editing freely. |
+| Allow Backspace while locked | Lets Backspace delete text even when editing is locked. |
+| Lock mouse cursor | Stops mouse clicks from moving the cursor while editing is locked. |
+| **Interface** | |
 | Show activation state in status bar | Shows an indicator while the mode is active. |
 | Show notice when toggling status | Shows a brief notice when you toggle the mode. |
 | Show ribbon icon | Adds a left-sidebar button to toggle the mode (off by default). |
-| Allow using Backspace key even if active | Permits deleting with Backspace while active. |
-| Lock mouse cursor | Blocks the mouse from moving the cursor while active. |
-| Typewriter scrolling | Keeps the active line vertically centered (independent of focus mode). |
+| **Focus mode** | |
+| Typewriter scrolling | Keeps the active line vertically centered (works with or without focus mode). |
 | Enable focus mode | Enters the distraction-free environment with Hemingway mode. |
-| Hide interface chrome | Collapses sidebars and hides ribbon, tabs, and status bar. |
+| Hide interface chrome | Collapses sidebars and hides the ribbon, tabs, status bar, and mobile toolbar/navbar. |
 | Center text column | Narrows and centers the editor. |
-| Dim inactive paragraphs | Fades everything but the current paragraph. |
+| Dim inactive text | Fades everything except the current sentence (iA Writer style). |
 
 ## Install
 

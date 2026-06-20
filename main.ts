@@ -496,7 +496,7 @@ class HemingwayModeSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("Hemingway mode enabled")
-      .setDesc("Prevents any editing, so you can only write ahead.")
+      .setDesc("Turns the writing mode on or off. Choose what it does — editing locks, interface, focus view — in the sections below.")
       .addToggle((toggle) =>
         toggle.setValue(this.plugin.settings.enabled).onChange(async (value) => {
           this.plugin.settings.enabled = value;
@@ -524,8 +524,8 @@ class HemingwayModeSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName("Allow using Backspace key even if active")
-      .setDesc("Allows deleting text with Backspace. This is useful for lousy typists.")
+      .setName("Allow Backspace while locked")
+      .setDesc("Lets Backspace delete text even when editing is locked, for fixing the occasional typo.")
       .setDisabled(!lockEditing)
       .addToggle((toggle) =>
         toggle.setValue(this.plugin.settings.allowBackspace).onChange(async (value) => {
@@ -537,7 +537,7 @@ class HemingwayModeSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("Lock mouse cursor")
-      .setDesc("Prevents the mouse from moving the cursor while active, so you can only write forward.")
+      .setDesc("Stops mouse clicks from moving the cursor while editing is locked, so you can only write forward.")
       .setDisabled(!lockEditing)
       .addToggle((toggle) =>
         toggle.setValue(this.plugin.settings.lockMouse).onChange(async (value) => {
@@ -562,7 +562,7 @@ class HemingwayModeSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("Show notice when toggling status")
-      .setDesc("Helps noticing changes between enabled and disabled.")
+      .setDesc("Shows a brief notice each time you toggle the mode on or off.")
       .addToggle((toggle) =>
         toggle.setValue(this.plugin.settings.showToggleNotice).onChange(async (value) => {
           this.plugin.settings.showToggleNotice = value;
@@ -586,7 +586,7 @@ class HemingwayModeSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("Typewriter scrolling")
-      .setDesc("Keeps the line you are writing vertically centered on screen.")
+      .setDesc("Keeps the line you're writing vertically centered on screen. Works on its own, with or without focus mode.")
       .addToggle((toggle) =>
         toggle.setValue(this.plugin.settings.focusTypewriter).onChange(async (value) => {
           this.plugin.settings.focusTypewriter = value;
