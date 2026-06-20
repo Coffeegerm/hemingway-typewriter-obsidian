@@ -6,7 +6,10 @@
 body.hemingway-focus-chrome .workspace-ribbon,
 body.hemingway-focus-chrome .workspace-tab-header-container,
 body.hemingway-focus-chrome .status-bar,
-body.hemingway-focus-chrome .view-header {
+body.hemingway-focus-chrome .view-header,
+/* Mobile: the command-shortcut toolbar above the keyboard + the navbar */
+body.hemingway-focus-chrome .mobile-toolbar,
+body.hemingway-focus-chrome .mobile-navbar {
   display: none !important;
 }
 
