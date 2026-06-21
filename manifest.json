@@ -1,10 +1,10 @@
 {
-  "id": "hemingway-typewriter",
-  "name": "Hemingway Typewriter",
-  "version": "1.0.0",
-  "minAppVersion": "1.4.0",
-  "description": "A write-only typewriter mode: you can only write forward, with a distraction-free focus environment.",
-  "author": "David Yarzebinski",
-  "authorUrl": "https://github.com/coffeegerm",
-  "isDesktopOnly": false
+	"id": "hemingway-typewriter",
+	"name": "Hemingway Typewriter",
+	"version": "1.0.1",
+	"minAppVersion": "1.4.0",
+	"description": "A write-only typewriter mode: you can only write forward, with a distraction-free focus environment.",
+	"author": "David Yarzebinski",
+	"authorUrl": "https://github.com/coffeegerm",
+	"isDesktopOnly": false
 }
